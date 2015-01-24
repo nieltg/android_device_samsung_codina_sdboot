@@ -50,10 +50,14 @@ if ! busybox grep -q bootmode=2 /proc/cmdline ; then
 	fi
 	
 else
+	
 	echo "Booting into recovery..."
 	echo "Not checking for SD boot flag."
 	
-	load_image=/ramdisk/recovery.cpio
+	if busybox test -r /ramdisk/recovery.cpio ; then
+		load_image=/ramdisk/recovery.cpio
+	fi
+	
 fi
 
 # Load specified image to the ramdisk.

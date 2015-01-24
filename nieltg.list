@@ -30,19 +30,16 @@ nod /dev/block/mmcblk1p2 600 0 0 b 179 98
 nod /dev/block/mmcblk1p3 600 0 0 b 179 99
 slink /init /ramdisk/stage0 777 0 0
 dir /ramdisk 755 0 0
-file /ramdisk/busybox usr/nieltg/busybox 755 0 0
-file /ramdisk/stage0 usr/nieltg/stage0 755 0 0
-file /ramdisk/stage1 usr/nieltg/stage1 755 0 0
-file /ramdisk/boot.cpio usr/nieltg/boot.cpio 644 0 0
-file /ramdisk/recovery.cpio usr/nieltg/recovery.cpio 644 0 0
+file /ramdisk/busybox source/usr/nieltg/busybox 755 0 0
+file /ramdisk/stage0 source/usr/nieltg/stage0 755 0 0
+file /ramdisk/stage1 source/usr/nieltg/stage1 755 0 0
+file /ramdisk/boot.cpio source/usr/nieltg/boot.cpio 644 0 0
+file /ramdisk/recovery.cpio source/usr/nieltg/recovery.cpio 644 0 0
 dir /lib 755 0 0
 dir /lib/modules 755 0 0
-file /lib/modules/bthid.ko MOD/bthid.ko 644 0 0
-file /lib/modules/cifs.ko MOD/cifs.ko 644 0 0
-file /lib/modules/dhd.ko MOD/dhd.ko 644 0 0
-file /lib/modules/exfat.ko MOD/exfat.ko 644 0 0
-file /lib/modules/hwreg.ko MOD/hwreg.ko 644 0 0
-file /lib/modules/j4fs.ko MOD/j4fs.ko 644 0 0
-file /lib/modules/param.ko MOD/param.ko 644 0 0
-file /lib/modules/rng-core.ko MOD/rng-core.ko 644 0 0
-file /lib/modules/scsi_wait_scan.ko MOD/scsi_wait_scan.ko 644 0 0
+file /lib/modules/rng-core.ko drivers/char/hw_random/rng-core.ko 755 0 0
+file /lib/modules/hwreg.ko drivers/char/hwreg/hwreg.ko 755 0 0
+file /lib/modules/bthid.ko drivers/bluetooth/bthid/bthid.ko 755 0 0
+file /lib/modules/j4fs.ko drivers/samsung/j4fs/j4fs.ko 755 0 0
+file /lib/modules/param.ko drivers/samsung/param/param.ko 755 0 0
+file /lib/modules/dhd.ko drivers/net/wireless/bcmdhd/dhd.ko 755 0 0
