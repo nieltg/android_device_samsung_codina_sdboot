@@ -33,8 +33,8 @@ dir /ramdisk 755 0 0
 file /ramdisk/busybox source/usr/nieltg/busybox 755 0 0
 file /ramdisk/stage0 source/usr/nieltg/stage0 755 0 0
 file /ramdisk/stage1 source/usr/nieltg/stage1 755 0 0
-file /ramdisk/boot.cpio source/usr/nieltg/boot.cpio 644 0 0
-file /ramdisk/recovery.cpio source/usr/nieltg/recovery.cpio 644 0 0
+file /ramdisk/boot.cpio source/usr/nieltg_cpio/boot.cpio 644 0 0
+file /ramdisk/recovery.cpio source/usr/nieltg_cpio/recovery.cpio 644 0 0
 dir /lib 755 0 0
 dir /lib/modules 755 0 0
 file /lib/modules/rng-core.ko drivers/char/hw_random/rng-core.ko 755 0 0
