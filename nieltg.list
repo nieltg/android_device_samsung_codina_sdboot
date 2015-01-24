@@ -1,0 +1,48 @@
+dir /sys 755 0 0
+dir /proc 755 0 0
+dir /cache 755 0 0
+dir /mnt 755 0 0
+dir /mnt/disk0 755 0 0
+dir /mnt/.lfs 755 0 0
+dir /dev 755 0 0
+dir /dev/block 755 0 0
+nod /dev/block/mmcblk0 600 0 0 b 179 0
+nod /dev/block/mmcblk0p1 600 0 0 b 179 1
+nod /dev/block/mmcblk0p2 600 0 0 b 179 2
+nod /dev/block/mmcblk0p3 600 0 0 b 179 3
+nod /dev/block/mmcblk0p4 600 0 0 b 179 4
+nod /dev/block/mmcblk0p5 600 0 0 b 179 5
+nod /dev/block/mmcblk0p6 600 0 0 b 179 6
+nod /dev/block/mmcblk0p7 600 0 0 b 179 7
+nod /dev/block/mmcblk0p8 600 0 0 b 179 8
+nod /dev/block/mmcblk0p9 600 0 0 b 179 9
+nod /dev/block/mmcblk0p10 600 0 0 b 179 10
+nod /dev/block/mmcblk0p11 600 0 0 b 179 11
+nod /dev/block/mmcblk0p12 600 0 0 b 179 12
+nod /dev/block/mmcblk0p13 600 0 0 b 179 13
+nod /dev/block/mmcblk0p14 600 0 0 b 179 14
+nod /dev/block/mmcblk0p15 600 0 0 b 179 15
+nod /dev/block/mmcblk0p16 600 0 0 b 179 16
+nod /dev/block/mmcblk0p17 600 0 0 b 179 17
+nod /dev/block/mmcblk1 600 0 0 b 179 96
+nod /dev/block/mmcblk1p1 600 0 0 b 179 97
+nod /dev/block/mmcblk1p2 600 0 0 b 179 98
+nod /dev/block/mmcblk1p3 600 0 0 b 179 99
+slink /init /ramdisk/stage0 777 0 0
+dir /ramdisk 755 0 0
+file /ramdisk/busybox usr/nieltg/busybox 755 0 0
+file /ramdisk/stage0 usr/nieltg/stage0 755 0 0
+file /ramdisk/stage1 usr/nieltg/stage1 755 0 0
+file /ramdisk/boot.cpio usr/nieltg/boot.cpio 644 0 0
+file /ramdisk/recovery.cpio usr/nieltg/recovery.cpio 644 0 0
+dir /lib 755 0 0
+dir /lib/modules 755 0 0
+file /lib/modules/bthid.ko MOD/bthid.ko 644 0 0
+file /lib/modules/cifs.ko MOD/cifs.ko 644 0 0
+file /lib/modules/dhd.ko MOD/dhd.ko 644 0 0
+file /lib/modules/exfat.ko MOD/exfat.ko 644 0 0
+file /lib/modules/hwreg.ko MOD/hwreg.ko 644 0 0
+file /lib/modules/j4fs.ko MOD/j4fs.ko 644 0 0
+file /lib/modules/param.ko MOD/param.ko 644 0 0
+file /lib/modules/rng-core.ko MOD/rng-core.ko 644 0 0
+file /lib/modules/scsi_wait_scan.ko MOD/scsi_wait_scan.ko 644 0 0

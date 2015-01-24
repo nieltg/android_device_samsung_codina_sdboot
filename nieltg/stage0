@@ -1,0 +1,30 @@
+#!/ramdisk/busybox sh
+
+_PATH="$PATH"
+export PATH=/ramdisk
+
+cd /
+exec >> boot.txt 2>&1
+
+echo "Android is booting..."
+busybox date
+echo
+
+busybox rm init
+
+echo "Entering stage1..."
+echo
+
+busybox time /ramdisk/stage1
+
+echo
+echo "On stage0: cleaning up..."
+
+busybox rm -fr /ramdisk /dev/*
+
+echo "stage0 is finished."
+echo
+
+export PATH="${_PATH}"
+exec /init
+
