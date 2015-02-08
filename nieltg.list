@@ -1,9 +1,3 @@
-dir /sys 755 0 0
-dir /proc 755 0 0
-dir /cache 755 0 0
-dir /mnt 755 0 0
-dir /mnt/disk0 755 0 0
-dir /mnt/.lfs 755 0 0
 dir /dev 755 0 0
 dir /dev/block 755 0 0
 nod /dev/block/mmcblk0 600 0 0 b 179 0

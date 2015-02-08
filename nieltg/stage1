@@ -1,5 +1,7 @@
 #!/ramdisk/busybox sh
 
+busybox mkdir -p /proc /sys /mnt
+
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
 
@@ -7,46 +9,32 @@ load_image=/ramdisk/boot.cpio
 
 if ! busybox grep -q bootmode=2 /proc/cmdline ; then
 	
-	# Check for SD boot flag from cache partition.
+	# Check for SD boot flag.
 	
 	echo "Not booting into recovery..."
-	load_sd="0"
 	
-	if busybox mount -t ext4 /dev/block/mmcblk0p4 /cache ; then
+	if busybox mount -t ext4 /dev/block/mmcblk1p2 /mnt ; then
 		
-		if busybox test -e /cache/enable_sdboot ; then
-			load_sd="1"
-			busybox rm /cache/enable_sdboot
-		fi
-		
-		busybox umount /cache
-		
-	else
-		echo "Unable to mount cache partition."
-	fi
-	
-	# Enable SD boot if asked to.
-	
-	if busybox test "$load_sd" -eq "1" ; then
-		
-		echo "SD boot flag is enabled, loading..."
-		
-		if busybox mount -t ext4 /dev/block/mmcblk1p2 /mnt/disk0 ; then
+		if busybox test -e /mnt/enable_sdboot ; then
 			
-			if busybox cp /mnt/disk0/ramdisk.cpio /ramdisk/sdboot.cpio ; then
+			busybox rm /mnt/enable_sdboot
+			
+			echo "SD boot flag is enabled, loading..."
+			
+			if busybox cp /mnt/ramdisk.cpio /ramdisk/sdboot.cpio ; then
 				load_image=/ramdisk/sdboot.cpio
 			else
 				echo "Unable to copy ramdisk.cpio from SD boot."
 			fi
 			
-			busybox umount /mnt/disk0
-			
 		else
-			echo "Unable to mount SD boot partition."
+			echo "SD boot flag is disabled."
 		fi
 		
+		busybox umount /mnt
+		
 	else
-		echo "SD boot flag is disabled."
+		echo "Unable to mount SD boot partition."
 	fi
 	
 else
@@ -60,15 +48,18 @@ else
 	
 fi
 
+busybox umount /sys
+busybox umount /proc
+
+busybox rm -fr /dev
+busybox rmdir /proc /sys /mnt
+
 # Load specified image to the ramdisk.
 
 echo
 echo "Loading image: ${load_image}"
 
 busybox cpio -i < "${load_image}"
-
-busybox umount /sys
-busybox umount /proc
 
 echo
 echo "stage1 is finished."

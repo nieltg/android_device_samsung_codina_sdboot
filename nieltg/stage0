@@ -20,7 +20,7 @@ busybox time /ramdisk/stage1
 echo
 echo "On stage0: cleaning up..."
 
-busybox rm -fr /ramdisk /dev/*
+busybox rm -fr /ramdisk
 
 echo "stage0 is finished."
 echo
