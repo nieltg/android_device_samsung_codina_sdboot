@@ -1,6 +1,7 @@
 #!/ramdisk/busybox sh
+# init script - stage1 by @nieltg
 
-busybox mkdir -p /proc /sys /mnt
+busybox mkdir -p /proc /sys /dev /mnt
 
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
@@ -18,6 +19,8 @@ if ! busybox grep -q bootmode=2 /proc/cmdline ; then
 		if busybox test -e /mnt/enable_sdboot ; then
 			
 			busybox rm /mnt/enable_sdboot
+			
+			# Load system on SD card.
 			
 			echo "SD boot flag is enabled, loading..."
 			
@@ -47,6 +50,8 @@ else
 	fi
 	
 fi
+
+# Clean up directories.
 
 busybox umount /sys
 busybox umount /proc

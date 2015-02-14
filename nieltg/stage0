@@ -1,7 +1,10 @@
 #!/ramdisk/busybox sh
+# init script - stage0 by @nieltg
 
 _PATH="$PATH"
 export PATH=/ramdisk
+
+# Redirect output to boot.txt for debugging.
 
 cd /
 exec >> boot.txt 2>&1
@@ -10,7 +13,11 @@ echo "Android is booting..."
 busybox date
 echo
 
+# Remove init symlink (stage0's clean-up routine).
+
 busybox rm init
+
+# Enter 2nd stage.
 
 echo "Entering stage1..."
 echo
@@ -20,10 +27,13 @@ busybox time /ramdisk/stage1
 echo
 echo "On stage0: cleaning up..."
 
+# TODO: clean up everything in stage1.
 busybox rm -fr /ramdisk
 
 echo "stage0 is finished."
 echo
+
+# Execute real init.
 
 export PATH="${_PATH}"
 exec /init
