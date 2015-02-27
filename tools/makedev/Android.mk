@@ -1,0 +1,22 @@
+LOCAL_PATH:= $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES:= \
+	main.c \
+	util.c \
+	devices.c \
+
+LOCAL_MODULE:= makedev
+
+#LOCAL_MODULE_PATH := $(CODINARAMFS_OUT_BIN)
+#LOCAL_UNSTRIPPED_PATH := $(CODINARAMFS_OUT_BIN_UNSTRIPPED)
+
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+
+LOCAL_STATIC_LIBRARIES := \
+	libcutils \
+	libc
+
+include $(BUILD_EXECUTABLE)
+

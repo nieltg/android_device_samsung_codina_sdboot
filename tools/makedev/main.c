@@ -5,7 +5,6 @@
 
 #include "util.h"
 #include "devices.h"
-
 #include "main.h"
 
 static struct arguments arg;
