@@ -130,13 +130,8 @@ $(CODINARAMFS_KERNEL_M): TARGET_CODINARAMFS_KERNEL_M_MAIN TARGET_CODINARAMFS_KER
 	$(mv-modules)
 	$(clean-module-folder)
 
-# Make initramfs.
-
-# TODO: this is bypass-test, should be removed soon!
-$(warning codinaramfs: bypass-test: initramfs build is skipped)
-$(warning codinaramfs: bypass-test: built kernel may be unable to boot)
-
-$(CODINARAMFS_KERNEL_U):
+# Rules to build initramfs /init should be defined somewhere
+# This file only refers it as prerequisites
 
 # Make kernel binaries.
 
