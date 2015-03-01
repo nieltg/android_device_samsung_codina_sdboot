@@ -33,11 +33,6 @@ CODINARAMFS_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_KERNEL_OBJ
 
 CODINARAMFS_OUT_INIT := $(CODINARAMFS_OUT)/init
 
-# Define final rules.
-
-$(CODINARAMFS_OUT):
-	mkdir -p $(CODINARAMFS_OUT)
-
 # Include more files.
 
 include \
