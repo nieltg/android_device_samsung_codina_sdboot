@@ -1,47 +1,25 @@
 LOCAL_PATH := $(call my-dir)
 
-CODINARAMFS_ROOTDIR_BIN := ramdisk
-CODINARAMFS_ROOTDIR_MODULES := 
+# Use simple copy mechanism instead of BUILD_PREBUILT
+# to prevent unnecessary copies in $(TARGET_OUT_INTERMEDIATES)
+
+CODINARAMFS_INTERMEDIATE_COPY += \
+	$(LOCAL_PATH)/busybox \
+	$(LOCAL_PATH)/stage0 \
+	$(LOCAL_PATH)/stage1 \
+	$(LOCAL_PATH)/boot.cpio \
+	$(LOCAL_PATH)/recovery.cpio
 
 # Package content definitions.
 
-CODINARAMFS_ROOTDIR_COPY += \
-	$(LOCAL_PATH)/busybox:$(CODINARAMFS_ROOTDIR_BIN)/busybox \
-	$(LOCAL_PATH)/stage0:$(CODINARAMFS_ROOTDIR_BIN)/stage0 \
-	$(LOCAL_PATH)/stage1:$(CODINARAMFS_ROOTDIR_BIN)/stage1 \
-	$(LOCAL_PATH)/boot.cpio:$(CODINARAMFS_ROOTDIR_BIN)/boot.cpio \
-	$(LOCAL_PATH)/recovery.cpio:$(CODINARAMFS_ROOTDIR_BIN)/recovery.cpio
-
-CODINARAMFS_ROOTDIR_INIT_LN_TARGET := $(CODINARAMFS_ROOTDIR_BIN)/stage0
-
-# TODO: there should be better way to get makedev compiled.
-CODINARAMFS_ROOTDIR_COPY += \
-	$(TARGET_OUT_INTERMEDIATES)/EXECUTABLES/makedev_intermediates/makedev:$(CODINARAMFS_ROOTDIR_BIN)/makedev
-
-# Convert definitions to rules.
-
-unique_codinaramfs_rootdir_copy_pairs :=
-
-$(foreach cf,$(CODINARAMFS_ROOTDIR_COPY), \
-	$(if $(filter $(unique_codinaramfs_rootdir_copy_pairs),$(cf)),,\
-		$(eval unique_codinaramfs_rootdir_copy_pairs += $(cf))))
-
-unique_codinaramfs_rootdir_copy_dests :=
-
-$(foreach cf,$(unique_codinaramfs_rootdir_copy_pairs), \
-	$(eval _src := $(call word-colon,1,$(cf))) \
-	$(eval _dest := $(call word-colon,2,$(cf))) \
-		$(if $(filter $(unique_codinaramfs_rootdir_copy_dests),$(_dest)), \
-			$(info CODINARAMFS_ROOTDIR_COPY $(cf) ignored.), \
-			$(eval _fulldest := $(call append-path,$(CODINARAMFS_OUT),$(_dest))) \
-			$(if $(filter %.xml,$(_dest)),\
-				$(eval $(call copy-xml-file-checked,$(_src),$(_fulldest))),\
-				$(eval $(call copy-one-file,$(_src),$(_fulldest)))) \
-			$(eval CODINARAMFS_ROOTDIR_MODULES += $(_fulldest)) \
-			$(eval unique_codinaramfs_rootdir_copy_dests += $(_dest))))
-
-unique_codinaramfs_rootdir_copy_pairs :=
-unique_codinaramfs_rootdir_copy_dests :=
+CODINARAMFS_INITRAMFS_LIST += \
+	-f /ramdisk/busybox $(CODINARAMFS_OBJ_OUT)/busybox 755 0 0 \
+	-f /ramdisk/makedev $(CODINARAMFS_OBJ_OUT)/makedev 755 0 0 \
+	-f /ramdisk/stage0 $(CODINARAMFS_OBJ_OUT)/stage0 755 0 0 \
+	-f /ramdisk/stage1 $(CODINARAMFS_OBJ_OUT)/stage1 755 0 0 \
+	-f /ramdisk/boot.cpio $(CODINARAMFS_OBJ_OUT)/boot.cpio 644 0 0 \
+	-f /ramdisk/recovery.cpio $(CODINARAMFS_OBJ_OUT)/recovery.cpio 644 0 0 \
+	-l /init /ramdisk/stage0 755 0 0
 
 # Define how to build init.
 
