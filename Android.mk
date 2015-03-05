@@ -31,13 +31,15 @@ TARGET_KERNEL_SOURCE :=
 CODINARAMFS_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_OBJ
 CODINARAMFS_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_KERNEL_OBJ
 
-CODINARAMFS_INITRAMFS_OUT := $(CODINARAMFS_OUT)/initramfs.list
 CODINARAMFS_INTERMEDIATES_OUT := $(CODINARAMFS_OUT)/intermediates
 
-#
+CODINARAMFS_TOOL_PARSE := $(LOCAL_PATH)/parse.py
 
+CODINARAMFS_INITRAMFS_LIST := $(CODINARAMFS_OUT)/initramfs.list
+
+
+CODINARAMFS_INITRAMFS_CMDLINE := 
 CODINARAMFS_INTERMEDIATES_COPY := 
-CODINARAMFS_INITRAMFS_LIST := 
 
 # Include more files.
 
@@ -69,12 +71,35 @@ $(foreach cf,$(unique_codinaramfs_intermediates_copy_pairs), \
 unique_codinaramfs_intermediates_copy_pairs :=
 unique_codinaramfs_intermediates_copy_dests :=
 
+#
+
+codinaramfs_initramfs_key := 
+codinaramfs_initramfs_key_i := 
+
+# TODO: hardlink is not supported!
+
+define codinaramfs-initramfs-keyparse \
+$(eval codinaramfs_initramfs_key_i := \
+	$(or \
+		$(if $(filter $(codinaramfs_initramfs_key),-f), x x x x x), \
+		$(if $(filter $(codinaramfs_initramfs_key),-d), x x x x), \
+		$(if $(filter $(codinaramfs_initramfs_key),-n), x x x x x x x), \
+		$(if $(filter $(codinaramfs_initramfs_key),-l), x x x x x), \
+		$(if $(filter $(codinaramfs_initramfs_key),-p), x x x x), \
+		$(if $(filter $(codinaramfs_initramfs_key),-s), x x x x), \
+		$(error INVALID ARGUMENT)))
+endef
+
+$(foreach cf, $())
+
+
 CODINARAMFS_INITRAMFS_PREREQUISITES := \
-	$(shell $(LOCAL_PATH)/parse.py $(CODINARAMFS_INITRAMFS_LIST) --mode pre)
+	$(shell $(CODINARAMFS_TOOL_PARSE) $(CODINARAMFS_INITRAMFS_CMDLINE) --mode pre)
 
 $(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(CODINARAMFS_INITRAMFS_PREREQUISITES)
-$(CODINARAMFS_INITRAMFS_OUT): _LOCAL := $(LOCAL_PATH)
-	$(_LOCAL)/parse.py $(CODINARAMFS_INITRAMFS_LIST) --kmod $(CODINARAMFS_KERNEL_M) > $@
+	$(CODINARAMFS_TOOL_PARSE) $(CODINARAMFS_INITRAMFS_LIST) --kmod $(CODINARAMFS_KERNEL_M) > $@
+
+#
 
 else
 $(warning codinaramfs: codinaramfs is disabled)
