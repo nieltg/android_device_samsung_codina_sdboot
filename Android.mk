@@ -31,15 +31,11 @@ TARGET_KERNEL_SOURCE :=
 CODINARAMFS_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_OBJ
 CODINARAMFS_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_KERNEL_OBJ
 
+CODINARAMFS_INTERMEDIATES_COPY := 
 CODINARAMFS_INTERMEDIATES_OUT := $(CODINARAMFS_OUT)/intermediates
 
-CODINARAMFS_TOOL_PARSE := $(LOCAL_PATH)/parse.py
-
-CODINARAMFS_INITRAMFS_LIST := $(CODINARAMFS_OUT)/initramfs.list
-
-
 CODINARAMFS_INITRAMFS_CMDLINE := 
-CODINARAMFS_INTERMEDIATES_COPY := 
+CODINARAMFS_INITRAMFS_LIST := $(CODINARAMFS_OUT)/initramfs.list
 
 # Include more files.
 
@@ -76,28 +72,50 @@ unique_codinaramfs_intermediates_copy_dests :=
 codinaramfs_initramfs_key := 
 codinaramfs_initramfs_key_i := 
 
-# TODO: hardlink is not supported!
+# TODO: hardlink is not supported yet...
 
-define codinaramfs-initramfs-keyparse \
+define codinaramfs-initramfs-keyparse
+$(eval codinaramfs_initramfs_key := $(1)) \
 $(eval codinaramfs_initramfs_key_i := \
 	$(or \
-		$(if $(filter $(codinaramfs_initramfs_key),-f), x x x x x), \
-		$(if $(filter $(codinaramfs_initramfs_key),-d), x x x x), \
-		$(if $(filter $(codinaramfs_initramfs_key),-n), x x x x x x x), \
-		$(if $(filter $(codinaramfs_initramfs_key),-l), x x x x x), \
-		$(if $(filter $(codinaramfs_initramfs_key),-p), x x x x), \
-		$(if $(filter $(codinaramfs_initramfs_key),-s), x x x x), \
-		$(error INVALID ARGUMENT)))
+		$(if $(filter $(1),-f), name location mode uid gid), \
+		$(if $(filter $(1),-d), name mode uid gid), \
+		$(if $(filter $(1),-n), name mode uid gid type maj min), \
+		$(if $(filter $(1),-l), name target mode uid gid), \
+		$(if $(filter $(1),-p), name mode uid gid), \
+		$(if $(filter $(1),-s), name mode uid gid), \
+		$(error codinaramfs: invalid initramfs key: $(1))))
 endef
 
-$(foreach cf, $())
+# foreach() mechanism: check for key_i, empty means keyparse, non-empty
+# means in-param parse, process param & pop first key_i.
+# key_i must be empty after parsing or error(uncomplete param detected)
 
+define codinaramfs-initramfs-loop
+$(foreach cf, $(CODINARAMFS_INITRAMFS_CMDLINE), \
+	$(if $(codinaramfs_initramfs_key_i), \
+		$(call $(1),$(codinaramfs_initramfs_key),$(firstword \
+			$(codinaramfs_initramfs_key_i)),$(cf)) \
+		$(eval codinaramfs_initramfs_key_i := $(wordlist 2, $(words \
+			$(codinaramfs_initramfs_key_i)),$(codinaramfs_initramfs_key_i))), \
+		$(call codinaramfs-initramfs-keyparse,$(cf)))) \
+$(if $(codinaramfs_initramfs_key_i), \
+	$(error codinaramfs: missing params for $(codinaramfs_initramfs_key)))
+endef
 
-CODINARAMFS_INITRAMFS_PREREQUISITES := \
-	$(shell $(CODINARAMFS_TOOL_PARSE) $(CODINARAMFS_INITRAMFS_CMDLINE) --mode pre)
+define codinaramfs-initramfs-parse-st1
+$(if $(filter $(1),-f), $(if $(filter $(2),location), $(3)))
+endef
 
-$(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(CODINARAMFS_INITRAMFS_PREREQUISITES)
-	$(CODINARAMFS_TOOL_PARSE) $(CODINARAMFS_INITRAMFS_LIST) --kmod $(CODINARAMFS_KERNEL_M) > $@
+# TODO: stage2 not completed!
+
+define codinaramfs-initramfs-parse-st2
+$(if $(filter $(1),-f), \
+	$(if $(filter $(2),location), $(3)))
+endef
+
+$(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-parse-st1)
+	# TODO: uncompleted!
 
 #
 
