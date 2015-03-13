@@ -69,38 +69,37 @@ unique_codinaramfs_intermediates_copy_dests :=
 
 #
 
-codinaramfs_initramfs_key := 
-codinaramfs_initramfs_key_i := 
-
-# TODO: hardlink is not supported yet...
-
-define codinaramfs-initramfs-keyparse
-$(eval codinaramfs_initramfs_key := $(1)) \
-$(eval codinaramfs_initramfs_key_i := \
-	$(or \
-		$(if $(filter $(1),-f), name location mode uid gid), \
-		$(if $(filter $(1),-d), name mode uid gid), \
-		$(if $(filter $(1),-n), name mode uid gid type maj min), \
-		$(if $(filter $(1),-l), name target mode uid gid), \
-		$(if $(filter $(1),-p), name mode uid gid), \
-		$(if $(filter $(1),-s), name mode uid gid), \
-		$(error codinaramfs: invalid initramfs key: $(1))))
-endef
-
 # foreach() mechanism: check for key_i, empty means keyparse, non-empty
 # means in-param parse, process param & pop first key_i.
 # key_i must be empty after parsing or error(uncomplete param detected)
 
+# TODO: hardlink is not supported yet...
+
+define codinaramfs-initramfs-key
+$(or \
+	$(if $(filter $(1),-f), name location mode uid gid), \
+	$(if $(filter $(1),-d), name mode uid gid), \
+	$(if $(filter $(1),-n), name mode uid gid type maj min), \
+	$(if $(filter $(1),-l), name target mode uid gid), \
+	$(if $(filter $(1),-p), name mode uid gid), \
+	$(if $(filter $(1),-s), name mode uid gid), \
+	$(error codinaramfs: invalid initramfs key: $(1)))
+endef
+
 define codinaramfs-initramfs-loop
+$(eval _loop_key_i := ) \
 $(foreach cf, $(CODINARAMFS_INITRAMFS_CMDLINE), \
-	$(if $(codinaramfs_initramfs_key_i), \
-		$(call $(1),$(codinaramfs_initramfs_key),$(firstword \
-			$(codinaramfs_initramfs_key_i)),$(cf)) \
-		$(eval codinaramfs_initramfs_key_i := $(wordlist 2, $(words \
-			$(codinaramfs_initramfs_key_i)),$(codinaramfs_initramfs_key_i))), \
-		$(call codinaramfs-initramfs-keyparse,$(cf)))) \
-$(if $(codinaramfs_initramfs_key_i), \
-	$(error codinaramfs: missing params for $(codinaramfs_initramfs_key)))
+	$(if $(_loop_key_i), \
+		$(call $(1),$(_loop_key),$(firstword \
+			$(_loop_key_i)),$(cf)) \
+		$(eval _loop_key_i := $(wordlist 2, $(words \
+			$(_loop_key_i)),$(_loop_key_i))), \
+		$(eval _loop_key := $(cf)) \
+		$(eval _loop_key_i := $(call codinaramfs-initramfs-key,$(cf))))) \
+$(if $(_loop_key_i), \
+	$(error codinaramfs: missing params for $(_loop_key))) \
+$(eval _loop_key := ) \
+$(eval _loop_key_i := )
 endef
 
 define codinaramfs-initramfs-parse-st1
@@ -111,7 +110,7 @@ endef
 
 define codinaramfs-initramfs-parse-st2
 $(if $(filter $(1),-f), \
-	$(if $(filter $(2),location), $(3)))
+	$(if $(filter $(2),), $(3)))
 endef
 
 $(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-parse-st1)
