@@ -90,10 +90,10 @@ define codinaramfs-initramfs-loop
 $(eval _loop_key_i := ) \
 $(foreach cf, $(CODINARAMFS_INITRAMFS_CMDLINE), \
 	$(if $(_loop_key_i), \
-		$(call $(1),$(_loop_key),$(firstword \
-			$(_loop_key_i)),$(cf)) \
+		$(call $(1),$(_loop_key),$(firstword $(_loop_key_i)),$(cf)) \
 		$(eval _loop_key_i := $(wordlist 2, $(words \
-			$(_loop_key_i)),$(_loop_key_i))), \
+			$(_loop_key_i)),$(_loop_key_i))) \
+		$(if $(_loop_key_i),,$(call $(1),$(_loop_key),,)), \
 		$(eval _loop_key := $(cf)) \
 		$(eval _loop_key_i := $(call codinaramfs-initramfs-key,$(cf))))) \
 $(if $(_loop_key_i), \
@@ -108,10 +108,51 @@ endef
 
 # TODO: stage2 not completed!
 
+# Standard: dir <name> 755 0 0
+# _pbuf_dir: store all created dirs
+
+# $(if $(_pbuf_dir),, $(eval _pbuf_dir := ))
+# END: $(eval _pbuf_dir := )
+
 define codinaramfs-initramfs-parse-st2
-$(if $(filter $(1),-f), \
-	$(if $(filter $(2),), $(3)))
+$(if $(2), $(eval _pbuf_$(2) := $(3)), \
+	$(if $(filter $(1),-f), \
+		echo file $(_pbuf_name) $(_pbuf_location) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+	$(if $(filter $(1),-d), \
+		echo dir $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+	$(if $(filter $(1),-n), \
+		echo node $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) $(_pbuf_type) $(_pbuf_maj) $(_pbuf_min);) \
+	$(if $(filter $(1),-l), \
+		echo slink $(_pbuf_name) $(_pbuf_target) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+	$(if $(filter $(1),-p), \
+		echo pipe $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+	$(if $(filter $(1),-s), \
+		echo sock $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+)
 endef
+
+# CODINARAMFS_INITRAMFS_CMDLINE := \
+#  -f /test1 loc2 644 0 1 \
+#  -d /lib 755 0 0 \
+#  -p /lib/pipe1 755 10 20
+# This variant out:
+#  -f, name, /test1
+#  -f, location, loc2
+#  -f, mode, 644
+#  -f, uid, 0
+#  -f, gid, 1
+#  -f, ,
+#  -d, name, /lib
+#  -d, mode, 755
+#  -d, uid, 0
+#  -d, gid, 0
+#  -d, ,
+#  -p, name, /lib/pipe1
+#  -p, mode, 755
+#  -p, uid, 10
+#  -p, gid, 20
+#  -p, ,
+# A line is produced when $(2) is empty.
 
 $(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-parse-st1)
 	# TODO: uncompleted!
