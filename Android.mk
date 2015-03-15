@@ -35,7 +35,9 @@ CODINARAMFS_INTERMEDIATES_COPY :=
 CODINARAMFS_INTERMEDIATES_OUT := $(CODINARAMFS_OUT)/intermediates
 
 CODINARAMFS_INITRAMFS_CMDLINE := 
-CODINARAMFS_INITRAMFS_LIST := $(CODINARAMFS_OUT)/initramfs.list
+CODINARAMFS_INITRAMFS_TMP1 := $(CODINARAMFS_OUT)/irfstmp1.list
+CODINARAMFS_INITRAMFS_TMP2 := $(CODINARAMFS_OUT)/irfstmp2.list
+CODINARAMFS_INITRAMFS_OUT := $(CODINARAMFS_OUT)/initramfs.list
 
 # Include more files.
 
@@ -114,14 +116,56 @@ endef
 # $(if $(_pbuf_dir),, $(eval _pbuf_dir := ))
 # END: $(eval _pbuf_dir := )
 
+define codinaramfs-initramfs-mix-init
+$(eval _mixc_objf := ) \
+$(eval _mixc_objd := ) \
+$(eval _mixc_idir := )
+endef
+
+define codinaramfs-initramfs-mix-prep
+$(eval _prep_name := $(2:/%=%)) \
+$(if $(filter $(_prep_name), $(_mixc_objd) $(_mixc_objf)), \
+	$(error codinaramfs: duplicate initramfs entry: $(_prep_name)), \
+	$(if $(filter -d, $(1)), \
+		$(eval _mixc_objd += $(_prep_name)), \
+		$(eval _mixc_objf += $(_prep_name)))) \
+$(if $(filter $(_prep_name), $(_mixc_idir)), \
+	$(if $(filter -d, $(1)),, \
+		$(error codinaramfs: $(_prep_name) is needed to be a directory))) \
+$(eval _prep_path := ) \
+$(foreach mdir, $(subst /, ,$(dir $(_prep_name))), \
+	$(if $(filter .,$(mdir)),, \
+		$(eval _prep_path := $(patsubst /%, %, $(_prep_path)/$(mdir))) \
+		$(if $(filter $(_prep_path), $(_mixc_objf)), \
+			$(error codinaramfs: $(_prep_path) must be a directory)) \
+		$(if $(filter $(_prep_path), $(_mixc_idir) $(_mixc_objd)),, \
+			$(eval _mixc_idir += $(_prep_path)))))
+endef
+
+define codinaramfs-initramfs-mix-kmod
+$(foreach kmod, $(shell cat $(1)), \
+	$(eval _mixk_src := $(CODINARAMFS_KERNEL_M_PATH)/$(kmod)) \
+	$(eval _mixk_dst := /lib/modules/$(kmod)) \
+	$(call codinaramfs-initramfs-mix-prep, -f, $(_mixk_dst)) \
+	echo file $(_mixk_dst) $(_mixk_src) 755 0 0; \
+)
+endef
+
+# TODO: post-impl: prepend auto-dirs (TMP2, then cat TMP1 TMP2 > OUT)
+# Create initramfs rule, check & recheck, change makedev path, etc!
+
+define codinaramfs-initramfs-mix-post
+endef
+
 define codinaramfs-initramfs-parse-st2
 $(if $(2), $(eval _pbuf_$(2) := $(3)), \
+	$(call codinaramfs-initramfs-mix-prep, $(1), $(_pbuf_name)) \
 	$(if $(filter $(1),-f), \
 		echo file $(_pbuf_name) $(_pbuf_location) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
 	$(if $(filter $(1),-d), \
 		echo dir $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
 	$(if $(filter $(1),-n), \
-		echo node $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) $(_pbuf_type) $(_pbuf_maj) $(_pbuf_min);) \
+		echo nod $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) $(_pbuf_type) $(_pbuf_maj) $(_pbuf_min);) \
 	$(if $(filter $(1),-l), \
 		echo slink $(_pbuf_name) $(_pbuf_target) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
 	$(if $(filter $(1),-p), \

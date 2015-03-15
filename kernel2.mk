@@ -29,10 +29,11 @@ CODINARAMFS_KERNEL_C := $(CODINARAMFS_KERNEL_OUT)/.config
 CODINARAMFS_KERNEL_H := $(CODINARAMFS_KERNEL_OUT)/usr
 
 CODINARAMFS_KERNEL_U_PATH := $(CODINARAMFS_OUT)
-CODINARAMFS_KERNEL_U := $(CODINARAMFS_OUT_INIT)
+CODINARAMFS_KERNEL_U := $(CODINARAMFS_OUT)/initramfs.list
 
-CODINARAMFS_KERNEL_M_PATH := $(CODINARAMFS_KERNEL_U_PATH)
-CODINARAMFS_KERNEL_M := $(CODINARAMFS_KERNEL_M_PATH)/lib/modules
+CODINARAMFS_KERNEL_M_PATH := $(CODINARAMFS_OUT)/modules
+CODINARAMFS_KERNEL_M_PREP := $(CODINARAMFS_KERNEL_M_PATH)/out
+CODINARAMFS_KERNEL_M := $(CODINARAMFS_KERNEL_M_PATH)/modules.list
 
 # Utilities from source file.
 
@@ -51,20 +52,17 @@ ifeq ($(KERNEL_TOOLCHAIN_PREFIX),)
 KERNEL_TOOLCHAIN_PREFIX := arm-eabi-
 endif
 
-define mv-modules
-	mdpath=`find $(CODINARAMFS_KERNEL_M) -type f -name modules.order`; \
-	if [ "$$mdpath" != "" ];then \
+define mv-modules-mklist
+	rm $(CODINARAMFS_KERNEL_M); \
+	mdpath=`find $(CODINARAMFS_KERNEL_M_PREP) -type f -name modules.order`; \
+	if [ "$$mdpath" != "" ]; then \
 		mpath=`dirname $$mdpath`; \
 		ko=`find $$mpath/kernel -type f -name *.ko`; \
-		for i in $$ko; do $(KERNEL_TOOLCHAIN)/$(KERNEL_TOOLCHAIN_PREFIX)strip --strip-unneeded $$i; \
-		mv $$i $(CODINARAMFS_KERNEL_M)/; done; \
-	fi
-endef
-
-define clean-module-folder
-	mdpath=`find $(CODINARAMFS_KERNEL_M) -type f -name modules.order`; \
-	if [ "$$mdpath" != "" ];then \
-		mpath=`dirname $$mdpath`; rm -rf $$mpath; \
+		for i in $$ko; do \
+			$(KERNEL_TOOLCHAIN)/$(KERNEL_TOOLCHAIN_PREFIX)strip --strip-unneeded $$i; \
+			mv $$i $(CODINARAMFS_KERNEL_M_PATH)/; \
+			echo `basename $$i` >> $(CODINARAMFS_KERNEL_M); \
+		done; \
 	fi
 endef
 
@@ -118,17 +116,19 @@ $(CODINARAMFS_KERNEL_H): $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_C)
 
 # Make kernel main & external modules.
 
-TARGET_CODINARAMFS_KERNEL_M_MAIN: $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_C) $(CODINARAMFS_KERNEL_H) $(CODINARAMFS_KERNEL_M_PATH)
+KERNEL_MODULES_OUT := $(abspath $(CODINARAMFS_KERNEL_M_PREP))
+
+TARGET_CODINARAMFS_KERNEL_M_MAIN: $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_C) $(CODINARAMFS_KERNEL_H)
 	$(MAKE) $(MAKE_FLAGS) -C $(CODINARAMFS_KERNEL_S) O=$(CODINARAMFS_KERNEL_OUT) ARCH=$(TARGET_ARCH) $(ARM_CROSS_COMPILE) modules
-	$(MAKE) $(MAKE_FLAGS) -C $(CODINARAMFS_KERNEL_S) O=$(CODINARAMFS_KERNEL_OUT) INSTALL_MOD_PATH=$(abspath $(CODINARAMFS_KERNEL_M_PATH)) ARCH=$(TARGET_ARCH) $(ARM_CROSS_COMPILE) modules_install
+	$(MAKE) $(MAKE_FLAGS) -C $(CODINARAMFS_KERNEL_S) O=$(CODINARAMFS_KERNEL_OUT) INSTALL_MOD_PATH=$(KERNEL_MODULES_OUT) ARCH=$(TARGET_ARCH) $(ARM_CROSS_COMPILE) modules_install
 
 $(TARGET_KERNEL_MODULES): $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_C) $(CODINARAMFS_KERNEL_H)
 
 TARGET_CODINARAMFS_KERNEL_M_EXT: $(TARGET_KERNEL_MODULES)
 
 $(CODINARAMFS_KERNEL_M): TARGET_CODINARAMFS_KERNEL_M_MAIN TARGET_CODINARAMFS_KERNEL_M_EXT
-	$(mv-modules)
-	$(clean-module-folder)
+	$(mv-modules-mklist)
+	@echo rm -fr $(CODINARAMFS_KERNEL_M_PREP)
 
 # Rules to build initramfs.list should be defined somewhere
 # This file only refers it as prerequisites
