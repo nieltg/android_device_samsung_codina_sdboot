@@ -21,9 +21,3 @@ CODINARAMFS_INITRAMFS_LIST += \
 	-f /ramdisk/recovery.cpio $(CODINARAMFS_OBJ_OUT)/recovery.cpio 644 0 0 \
 	-l /init /ramdisk/stage0 755 0 0
 
-# Define how to build init.
-
-$(CODINARAMFS_OUT_INIT): $(CODINARAMFS_ROOTDIR_MODULES)
-	rm -f $@
-	ln -s $(CODINARAMFS_ROOTDIR_INIT_LN_TARGET) $@
-

@@ -31,12 +31,13 @@ TARGET_KERNEL_SOURCE :=
 CODINARAMFS_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_OBJ
 CODINARAMFS_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_KERNEL_OBJ
 
+CODINARAMFS_SYMLINK_NAME := codinaramfs_dir
+CODINARAMFS_SYMLINK_OUT := $(CODINARAMFS_KERNEL_OUT)/$(CODINARAMFS_SYMLINK_NAME)
+
 CODINARAMFS_INTERMEDIATES_COPY := 
 CODINARAMFS_INTERMEDIATES_OUT := $(CODINARAMFS_OUT)/intermediates
 
-CODINARAMFS_INITRAMFS_CMDLINE := 
-CODINARAMFS_INITRAMFS_TMP1 := $(CODINARAMFS_OUT)/irfstmp1.list
-CODINARAMFS_INITRAMFS_TMP2 := $(CODINARAMFS_OUT)/irfstmp2.list
+CODINARAMFS_INITRAMFS_LIST := 
 CODINARAMFS_INITRAMFS_OUT := $(CODINARAMFS_OUT)/initramfs.list
 
 # Include more files.
@@ -45,7 +46,7 @@ include \
 	$(call first-makefiles-under, $(LOCAL_PATH)) \
 	$(LOCAL_PATH)/kernel2.mk
 
-#
+# Copy intermediate files.
 
 unique_codinaramfs_intermediates_copy_pairs :=
 
@@ -66,16 +67,10 @@ $(foreach cf,$(unique_codinaramfs_intermediates_copy_pairs), \
 				$(eval $(call copy-one-file,$(_src),$(_fulldest)))) \
 			$(eval unique_codinaramfs_intermediates_copy_dests += $(_dest))))
 
-unique_codinaramfs_intermediates_copy_pairs :=
-unique_codinaramfs_intermediates_copy_dests :=
+unique_codinaramfs_intermediates_copy_pairs := 
+unique_codinaramfs_intermediates_copy_dests := 
 
-#
-
-# foreach() mechanism: check for key_i, empty means keyparse, non-empty
-# means in-param parse, process param & pop first key_i.
-# key_i must be empty after parsing or error(uncomplete param detected)
-
-# TODO: hardlink is not supported yet...
+# Generate initramfs list file.
 
 define codinaramfs-initramfs-key
 $(or \
@@ -88,35 +83,9 @@ $(or \
 	$(error codinaramfs: invalid initramfs key: $(1)))
 endef
 
-define codinaramfs-initramfs-loop
-$(eval _loop_key_i := ) \
-$(foreach cf, $(CODINARAMFS_INITRAMFS_CMDLINE), \
-	$(if $(_loop_key_i), \
-		$(call $(1),$(_loop_key),$(firstword $(_loop_key_i)),$(cf)) \
-		$(eval _loop_key_i := $(wordlist 2, $(words \
-			$(_loop_key_i)),$(_loop_key_i))) \
-		$(if $(_loop_key_i),,$(call $(1),$(_loop_key),,)), \
-		$(eval _loop_key := $(cf)) \
-		$(eval _loop_key_i := $(call codinaramfs-initramfs-key,$(cf))))) \
-$(if $(_loop_key_i), \
-	$(error codinaramfs: missing params for $(_loop_key))) \
-$(eval _loop_key := ) \
-$(eval _loop_key_i := )
-endef
-
-define codinaramfs-initramfs-parse-st1
-$(if $(filter $(1),-f), $(if $(filter $(2),location), $(3)))
-endef
-
-# TODO: stage2 not completed!
-
-# Standard: dir <name> 755 0 0
-# _pbuf_dir: store all created dirs
-
-# $(if $(_pbuf_dir),, $(eval _pbuf_dir := ))
-# END: $(eval _pbuf_dir := )
-
 define codinaramfs-initramfs-mix-init
+$(eval _mixf_outp := $(shell mktemp -p $(CODINARAMFS_OUT))) \
+$(eval _mixf_outh := $(shell mktemp -p $(CODINARAMFS_OUT))) \
 $(eval _mixc_objf := ) \
 $(eval _mixc_objd := ) \
 $(eval _mixc_idir := )
@@ -142,66 +111,91 @@ $(foreach mdir, $(subst /, ,$(dir $(_prep_name))), \
 			$(eval _mixc_idir += $(_prep_path)))))
 endef
 
+define codinaramfs-initramfs-mix-rloc
+$(patsubst $(abspath $(CODINARAMFS_OUT))/%, $(CODINARAMFS_SYMLINK_NAME)/%, $(abspath $(1)))
+endef
+
+define codinaramfs-initramfs-mix-post
+$(if $(_mixf_outh),, $(error codinaramfs: loop-mix: assert: mix-init not called)) \
+echo "# This file is auto-generated" >> $(_mixf_outh)
+echo >> $(_mixf_outh)
+$(foreach mdir, $(_mixc_idir), \
+	echo dir /$(mdir) 755 0 0 >> $(_mixf_outh)
+) \
+cat $(_mixf_outh) $(_mixf_outp) > $(1)
+rm $(_mixf_outp) $(_mixf_outh)
+$(eval _mixf_outp := ) \
+$(eval _mixf_outh := ) \
+$(eval _mixc_objf := ) \
+$(eval _mixc_objd := ) \
+$(eval _mixc_idir := )
+endef
+
 define codinaramfs-initramfs-mix-kmod
+$(if $(_mixf_outp),, $(error codinaramfs: loop-mix: assert: mix-init not called)) \
+$(eval _mixk_bas := $(call codinaramfs-initramfs-mix-rloc, \
+	$(CODINARAMFS_KERNEL_M_PATH)))
 $(foreach kmod, $(shell cat $(1)), \
-	$(eval _mixk_src := $(CODINARAMFS_KERNEL_M_PATH)/$(kmod)) \
+	$(eval _mixk_src := $(_mixk_bas)/$(kmod)) \
 	$(eval _mixk_dst := /lib/modules/$(kmod)) \
 	$(call codinaramfs-initramfs-mix-prep, -f, $(_mixk_dst)) \
-	echo file $(_mixk_dst) $(_mixk_src) 755 0 0; \
+	echo file $(_mixk_dst) $(_mixk_src) 755 0 0 >> $(_mixf_outp)
 )
 endef
 
-# TODO: post-impl: prepend auto-dirs (TMP2, then cat TMP1 TMP2 > OUT)
-# Create initramfs rule, check & recheck, change makedev path, etc!
-
-define codinaramfs-initramfs-mix-post
+define codinaramfs-initramfs-loop
+$(eval _loop_key_i := ) \
+$(foreach cf, $(CODINARAMFS_INITRAMFS_LIST), \
+	$(if $(_loop_key_i), \
+		$(call $(1),$(_loop_key),$(firstword $(_loop_key_i)),$(cf)) \
+		$(eval _loop_key_i := $(wordlist 2, $(words \
+			$(_loop_key_i)),$(_loop_key_i))) \
+		$(if $(_loop_key_i),,$(call $(1),$(_loop_key),,)), \
+		$(eval _loop_key := $(cf)) \
+		$(eval _loop_key_i := $(call codinaramfs-initramfs-key,$(cf))))) \
+$(if $(_loop_key_i), \
+	$(error codinaramfs: missing params for $(_loop_key))) \
+$(eval _loop_key := ) \
+$(eval _loop_key_i := )
 endef
 
-define codinaramfs-initramfs-parse-st2
+define codinaramfs-initramfs-loop-parse
+$(if $(filter $(1),-f), $(if $(filter $(2),location), $(3)))
+endef
+
+define codinaramfs-initramfs-loop-mix
+$(if $(_mixf_outp),, $(error codinaramfs: loop-mix: assert: mix-init not called)) \
 $(if $(2), $(eval _pbuf_$(2) := $(3)), \
 	$(call codinaramfs-initramfs-mix-prep, $(1), $(_pbuf_name)) \
 	$(if $(filter $(1),-f), \
-		echo file $(_pbuf_name) $(_pbuf_location) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+		$(eval _pbuf_rloc := $(call codinaramfs-initramfs-mix-rloc, $(_pbuf_location))) \
+		echo file $(_pbuf_name) $(_pbuf_rloc) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
+		) \
 	$(if $(filter $(1),-d), \
-		echo dir $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+		echo dir $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
+		) \
 	$(if $(filter $(1),-n), \
-		echo nod $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) $(_pbuf_type) $(_pbuf_maj) $(_pbuf_min);) \
+		echo nod $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) $(_pbuf_type) $(_pbuf_maj) $(_pbuf_min) >> $(_mixf_outp)
+		) \
 	$(if $(filter $(1),-l), \
-		echo slink $(_pbuf_name) $(_pbuf_target) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+		echo slink $(_pbuf_name) $(_pbuf_target) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
+		) \
 	$(if $(filter $(1),-p), \
-		echo pipe $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
+		echo pipe $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
+		) \
 	$(if $(filter $(1),-s), \
-		echo sock $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid);) \
-)
+		echo sock $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
+		))
 endef
 
-# CODINARAMFS_INITRAMFS_CMDLINE := \
-#  -f /test1 loc2 644 0 1 \
-#  -d /lib 755 0 0 \
-#  -p /lib/pipe1 755 10 20
-# This variant out:
-#  -f, name, /test1
-#  -f, location, loc2
-#  -f, mode, 644
-#  -f, uid, 0
-#  -f, gid, 1
-#  -f, ,
-#  -d, name, /lib
-#  -d, mode, 755
-#  -d, uid, 0
-#  -d, gid, 0
-#  -d, ,
-#  -p, name, /lib/pipe1
-#  -p, mode, 755
-#  -p, uid, 10
-#  -p, gid, 20
-#  -p, ,
-# A line is produced when $(2) is empty.
+$(CODINARAMFS_SYMLINK_OUT): $(CODINARAMFS_OUT)
+	@ln -s $< $@
 
-$(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-parse-st1)
-	# TODO: uncompleted!
-
-#
+$(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_SYMLINK_OUT) $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-loop-parse)
+	$(call codinaramfs-initramfs-mix-init)
+	@$(call codinaramfs-initramfs-loop, codinaramfs-initramfs-loop-mix)
+	@$(call codinaramfs-initramfs-mix-kmod, $(CODINARAMFS_KERNEL_M))
+	@$(call codinaramfs-initramfs-mix-post, $@)
 
 else
 $(warning codinaramfs: codinaramfs is disabled)
