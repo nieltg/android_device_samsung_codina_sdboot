@@ -34,10 +34,12 @@ CODINARAMFS_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/CODINARAMFS_KERNEL_OBJ
 CODINARAMFS_SYMLINK_NAME := codinaramfs_dir
 CODINARAMFS_SYMLINK_OUT := $(CODINARAMFS_KERNEL_OUT)/$(CODINARAMFS_SYMLINK_NAME)
 
-CODINARAMFS_INTERMEDIATES_COPY := 
-CODINARAMFS_INTERMEDIATES_OUT := $(CODINARAMFS_OUT)/intermediates
+CODINARAMFS_INTERMEDIATE_COPY := 
+CODINARAMFS_INTERMEDIATE_OUT := $(CODINARAMFS_OUT)/intermediates
 
 CODINARAMFS_INITRAMFS_LIST := 
+CODINARAMFS_INITRAMFS_TMP_HEAD := $(CODINARAMFS_OUT)/_head.list
+CODINARAMFS_INITRAMFS_TMP_BODY := $(CODINARAMFS_OUT)/_tail.list
 CODINARAMFS_INITRAMFS_OUT := $(CODINARAMFS_OUT)/initramfs.list
 
 # Include more files.
@@ -48,27 +50,29 @@ include \
 
 # Copy intermediate files.
 
-unique_codinaramfs_intermediates_copy_pairs :=
+unique_codinaramfs_intermediate_copy_pairs := 
 
-$(foreach cf,$(CODINARAMFS_INTERMEDIATES_COPY), \
-	$(if $(filter $(unique_codinaramfs_intermediates_copy_pairs),$(cf)),,\
-		$(eval unique_codinaramfs_intermediates_copy_pairs += $(cf))))
+$(foreach cf,$(CODINARAMFS_INTERMEDIATE_COPY), \
+	$(if $(filter $(unique_codinaramfs_intermediate_copy_pairs),$(cf)),,\
+		$(eval unique_codinaramfs_intermediate_copy_pairs += $(cf))))
 
-unique_codinaramfs_intermediates_copy_dests :=
+unique_codinaramfs_intermediate_copy_dests := 
 
-$(foreach cf,$(unique_codinaramfs_intermediates_copy_pairs), \
+$(foreach cf,$(unique_codinaramfs_intermediate_copy_pairs), \
 	$(eval _src := $(call word-colon,1,$(cf))) \
 	$(eval _dest := $(call word-colon,2,$(cf))) \
-		$(if $(filter $(unique_codinaramfs_intermediates_copy_dests),$(_dest)), \
-			$(info CODINARAMFS_INTERMEDIATES_COPY $(cf) ignored.), \
-			$(eval _fulldest := $(call append-path,$(CODINARAMFS_INTERMEDIATES_OUT),$(_dest))) \
+	$(if $(_dest),, $(eval _dest := $(notdir $(_src)))) \
+		$(if $(filter $(unique_codinaramfs_intermediate_copy_dests),$(_dest)), \
+			$(info CODINARAMFS_INTERMEDIATE_COPY $(cf) ignored.), \
+			$(eval _fulldest := $(call append-path,$(CODINARAMFS_INTERMEDIATE_OUT),$(_dest))) \
+			$(info codinaramfs: DEBUG: _src=$(_src) _fulldest=$(_fulldest)) \
 			$(if $(filter %.xml,$(_dest)),\
 				$(eval $(call copy-xml-file-checked,$(_src),$(_fulldest))),\
 				$(eval $(call copy-one-file,$(_src),$(_fulldest)))) \
-			$(eval unique_codinaramfs_intermediates_copy_dests += $(_dest))))
+			$(eval unique_codinaramfs_intermediate_copy_dests += $(_dest))))
 
-unique_codinaramfs_intermediates_copy_pairs := 
-unique_codinaramfs_intermediates_copy_dests := 
+unique_codinaramfs_intermediate_copy_pairs := 
+unique_codinaramfs_intermediate_copy_dests := 
 
 # Generate initramfs list file.
 
@@ -84,8 +88,10 @@ $(or \
 endef
 
 define codinaramfs-initramfs-mix-init
-$(eval _mixf_outp := $(shell mktemp -p $(CODINARAMFS_OUT))) \
-$(eval _mixf_outh := $(shell mktemp -p $(CODINARAMFS_OUT))) \
+$(eval _mixf_outh := $(CODINARAMFS_INITRAMFS_TMP_HEAD)) \
+$(eval _mixf_outp := $(CODINARAMFS_INITRAMFS_TMP_BODY)) \
+true > $(CODINARAMFS_INITRAMFS_TMP_HEAD)
+true > $(CODINARAMFS_INITRAMFS_TMP_BODY)
 $(eval _mixc_objf := ) \
 $(eval _mixc_objd := ) \
 $(eval _mixc_idir := )
@@ -192,7 +198,7 @@ $(CODINARAMFS_SYMLINK_OUT): $(CODINARAMFS_OUT)
 	@ln -s $< $@
 
 $(CODINARAMFS_INITRAMFS_OUT): $(CODINARAMFS_SYMLINK_OUT) $(CODINARAMFS_KERNEL_M) $(call codinaramfs-initramfs-loop, codinaramfs-initramfs-loop-parse)
-	$(call codinaramfs-initramfs-mix-init)
+	@$(call codinaramfs-initramfs-mix-init)
 	@$(call codinaramfs-initramfs-loop, codinaramfs-initramfs-loop-mix)
 	@$(call codinaramfs-initramfs-mix-kmod, $(CODINARAMFS_KERNEL_M))
 	@$(call codinaramfs-initramfs-mix-post, $@)

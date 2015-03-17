@@ -53,17 +53,13 @@ KERNEL_TOOLCHAIN_PREFIX := arm-eabi-
 endif
 
 define mv-modules-mklist
-	rm $(CODINARAMFS_KERNEL_M); \
-	mdpath=`find $(CODINARAMFS_KERNEL_M_PREP) -type f -name modules.order`; \
-	if [ "$$mdpath" != "" ]; then \
-		mpath=`dirname $$mdpath`; \
-		ko=`find $$mpath/kernel -type f -name *.ko`; \
-		for i in $$ko; do \
-			$(KERNEL_TOOLCHAIN)/$(KERNEL_TOOLCHAIN_PREFIX)strip --strip-unneeded $$i; \
-			mv $$i $(CODINARAMFS_KERNEL_M_PATH)/; \
-			echo `basename $$i` >> $(CODINARAMFS_KERNEL_M); \
-		done; \
-	fi
+	rm -f $(CODINARAMFS_KERNEL_M); \
+	ko=`find $(CODINARAMFS_KERNEL_M_PREP) -type f -name *.ko`; \
+	for i in $$ko; do \
+		$(KERNEL_TOOLCHAIN)/$(KERNEL_TOOLCHAIN_PREFIX)strip --strip-unneeded $$i; \
+		mv $$i $(CODINARAMFS_KERNEL_M_PATH)/; \
+		echo `basename $$i` >> $(CODINARAMFS_KERNEL_M); \
+	done;
 endef
 
 ifeq ($(TARGET_ARCH),arm)
@@ -95,7 +91,7 @@ endif
 
 define config-codinaramfs
 	bash $(CODINARAMFS_KERNEL_S)/scripts/config --file $(CODINARAMFS_KERNEL_OUT)/.config \
-		--set-str CONFIG_INITRAMFS_SOURCE "$(CODINARAMFS_KERNEL_U_PATH)" \
+		--set-str CONFIG_INITRAMFS_SOURCE "$(CODINARAMFS_KERNEL_U)" \
 		--set-val CONFIG_INITRAMFS_ROOT_UID 0 \
 		--set-val CONFIG_INITRAMFS_ROOT_GID 0
 endef
@@ -127,8 +123,8 @@ $(TARGET_KERNEL_MODULES): $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_C) $(CO
 TARGET_CODINARAMFS_KERNEL_M_EXT: $(TARGET_KERNEL_MODULES)
 
 $(CODINARAMFS_KERNEL_M): TARGET_CODINARAMFS_KERNEL_M_MAIN TARGET_CODINARAMFS_KERNEL_M_EXT
-	$(mv-modules-mklist)
-	@echo rm -fr $(CODINARAMFS_KERNEL_M_PREP)
+	@$(mv-modules-mklist)
+	@rm -fr $(CODINARAMFS_KERNEL_M_PREP)
 
 # Rules to build initramfs.list should be defined somewhere
 # This file only refers it as prerequisites
