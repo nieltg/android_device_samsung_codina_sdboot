@@ -129,6 +129,7 @@ $(foreach mdir, $(_mixc_idir), \
 	echo dir /$(mdir) 755 0 0 >> $(_mixf_outh)
 ) \
 cat $(_mixf_outh) $(_mixf_outp) > $(1)
+echo codinaramfs: initramfs.list has been written.
 rm $(_mixf_outp) $(_mixf_outh)
 $(eval _mixf_outp := ) \
 $(eval _mixf_outh := ) \

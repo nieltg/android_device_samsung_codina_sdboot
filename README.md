@@ -2,8 +2,7 @@
 
 This repo contains simple init script which is especially made for __codina__.
 Its purpose is to boot via SD card, so it'll be easier to test new ROM. To use,
-it should be placed (and adjusted) to __usr__ directory in __codina kernel
-source__ and be compiled with it.
+it should be adjusted & be placed in Android build system.
 
 It works by extracting specified .cpio file instead of default one if asked to.
 The ROM on SD card must has __fstab__ pointed to the SD card itself instead of
