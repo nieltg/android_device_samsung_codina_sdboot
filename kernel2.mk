@@ -96,11 +96,6 @@ define config-codinaramfs
 		--set-val CONFIG_INITRAMFS_ROOT_GID 0
 endef
 
-# Create kernel built output dir.
-
-$(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_U_PATH):
-	mkdir -p $@
-
 # Make config & headers install.
 
 $(CODINARAMFS_KERNEL_C): $(CODINARAMFS_KERNEL_OUT) $(CODINARAMFS_KERNEL_U_PATH)

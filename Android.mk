@@ -65,7 +65,6 @@ $(foreach cf,$(unique_codinaramfs_intermediate_copy_pairs), \
 		$(if $(filter $(unique_codinaramfs_intermediate_copy_dests),$(_dest)), \
 			$(info CODINARAMFS_INTERMEDIATE_COPY $(cf) ignored.), \
 			$(eval _fulldest := $(call append-path,$(CODINARAMFS_INTERMEDIATE_OUT),$(_dest))) \
-			$(info codinaramfs: DEBUG: _src=$(_src) _fulldest=$(_fulldest)) \
 			$(if $(filter %.xml,$(_dest)),\
 				$(eval $(call copy-xml-file-checked,$(_src),$(_fulldest))),\
 				$(eval $(call copy-one-file,$(_src),$(_fulldest)))) \
@@ -194,6 +193,9 @@ $(if $(2), $(eval _pbuf_$(2) := $(3)), \
 		echo sock $(_pbuf_name) $(_pbuf_mode) $(_pbuf_uid) $(_pbuf_gid) >> $(_mixf_outp)
 		))
 endef
+
+$(CODINARAMFS_OUT) $(CODINARAMFS_KERNEL_OUT):
+	mkdir -p $@
 
 $(CODINARAMFS_SYMLINK_OUT): $(CODINARAMFS_OUT)
 	@ln -s $< $@
