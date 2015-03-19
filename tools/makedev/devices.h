@@ -24,6 +24,10 @@
 
 #include <sys/stat.h>
 
+#define NOTICE(f, a...) IF_ARG_BIT (BIT_MSG_DEBUG) MSG_NL ("init: " f, ##a)
+#define INFO(f, a...)   IF_ARG_BIT (BIT_MSG_DEBUG) MSG_NL ("init: " f, ##a)
+#define ERROR(f, a...)  MSG_NL(f, ##a)
+
 extern void handle_device_fd();
 extern void device_init(void);
 extern int add_dev_perms(const char *name, const char *attr,
