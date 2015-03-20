@@ -7,8 +7,7 @@ LOCAL_MODULE:= makedev
 LOCAL_SRC_FILES:= \
 	main.c \
 	util.c \
-	devices.c \
-	coldboot.c
+	devices.c
 
 LOCAL_STATIC_LIBRARIES := \
 	libcutils \

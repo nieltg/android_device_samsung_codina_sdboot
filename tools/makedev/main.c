@@ -1,13 +1,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <dirent.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <time.h>
 #include <poll.h>
 
 #include "util.h"
 #include "devices.h"
-#include "coldboot.h"
 #include "main.h"
 
 char * app_name = NULL;
@@ -32,8 +33,10 @@ void mkdev_link (const char *oldpath, const char *newpath)
 {
 	if (!check_dev (newpath, TRUE)) return;
 	
+	// TODO: Can we ensure that the oldpath has been created before?
+	
 	make_link (oldpath, newpath);
-	MSG_TRACE ("created link: %s => %s", oldpath, newpath);
+	MSG_TRACE ("created: %s => %s", oldpath, newpath);
 }
 
 void mkdev_node (const char *path, int block, int major, int minor)
@@ -45,7 +48,7 @@ void mkdev_node (const char *path, int block, int major, int minor)
 	mode = 0600 | (block ? S_IFBLK : S_IFCHR);
 	make_node (path, mode, makedev (major, minor));
 	
-	MSG_TRACE ("created node: %s (maj: %i, min: %i)", path, major, minor);
+	MSG_TRACE ("created: %s (%i, %i)", path, major, minor);
 }
 
 void rmdev (const char *path)
@@ -54,6 +57,66 @@ void rmdev (const char *path)
 	
 	unlink (path);
 	MSG_TRACE ("removed: %s", path);
+}
+
+/* == COLDBOOT == */
+
+/*
+ * This part is modified version of file in Android repository which is
+ * located at system/core/init/devices.c
+ */
+
+/* Coldboot walks parts of the /sys tree and pokes the uevent files
+** to cause the kernel to regenerate device add events that happened
+** before init's device manager was started
+**
+** We drain any pending events from the netlink socket every time
+** we poke another uevent file to make sure we don't overrun the
+** socket's buffer.
+*/
+
+static void do_coldboot(DIR *d)
+{
+	struct dirent *de;
+	int dfd, fd;
+	
+	if (is_done) return;
+	dfd = dirfd(d);
+	
+	fd = openat(dfd, "uevent", O_WRONLY);
+	if(fd >= 0) {
+		write(fd, "add\n", 4);
+		close(fd);
+		handle_device_fd();
+	}
+	
+	while((de = readdir(d))) {
+		DIR *d2;
+
+		if(de->d_type != DT_DIR || de->d_name[0] == '.')
+			continue;
+
+		fd = openat(dfd, de->d_name, O_RDONLY | O_DIRECTORY);
+		if(fd < 0)
+			continue;
+
+		d2 = fdopendir(fd);
+		if(d2 == 0)
+			close(fd);
+		else {
+			do_coldboot(d2);
+			closedir(d2);
+		}
+	}
+}
+
+static void coldboot(const char *path)
+{
+	DIR *d = opendir(path);
+	if(d) {
+		do_coldboot(d);
+		closedir(d);
+	}
 }
 
 /* == REAL MAIN == */
