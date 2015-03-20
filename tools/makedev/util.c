@@ -23,11 +23,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "main.h"
+#include "devices.h"
 #include "util.h"
 
 int mkdir_recursive(const char *pathname, mode_t mode)
