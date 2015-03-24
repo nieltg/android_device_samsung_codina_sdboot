@@ -1,6 +1,7 @@
 #!/ramdisk/busybox sh
+# init script - stage1 by @nieltg
 
-busybox mkdir -p /proc /sys /mnt
+busybox mkdir -p /proc /sys /dev /mnt
 
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
@@ -13,28 +14,36 @@ if ! busybox grep -q bootmode=2 /proc/cmdline ; then
 	
 	echo "Not booting into recovery..."
 	
-	if busybox mount -t ext4 /dev/block/mmcblk1p2 /mnt ; then
+	if makedev -c -v -t 5 /dev/block/mmcblk1p2 ; then
 		
-		if busybox test -e /mnt/enable_sdboot ; then
+		if busybox mount -t ext4 /dev/block/mmcblk1p2 /mnt ; then
 			
-			busybox rm /mnt/enable_sdboot
-			
-			echo "SD boot flag is enabled, loading..."
-			
-			if busybox cp /mnt/ramdisk.cpio /ramdisk/sdboot.cpio ; then
-				load_image=/ramdisk/sdboot.cpio
+			if busybox test -e /mnt/enable_sdboot ; then
+				
+				busybox rm /mnt/enable_sdboot
+				
+				# Load system on SD card.
+				
+				echo "SD boot flag is enabled, loading..."
+				
+				if busybox cp /mnt/ramdisk.cpio /ramdisk/sdboot.cpio ; then
+					load_image=/ramdisk/sdboot.cpio
+				else
+					echo "Unable to copy ramdisk.cpio from SD boot."
+				fi
+				
 			else
-				echo "Unable to copy ramdisk.cpio from SD boot."
+				echo "SD boot flag is disabled."
 			fi
 			
+			busybox umount /mnt
+			
 		else
-			echo "SD boot flag is disabled."
+			echo "Unable to mount SD boot partition."
 		fi
 		
-		busybox umount /mnt
-		
 	else
-		echo "Unable to mount SD boot partition."
+		echo "Unable to create device node."
 	fi
 	
 else
@@ -47,6 +56,8 @@ else
 	fi
 	
 fi
+
+# Clean up directories.
 
 busybox umount /sys
 busybox umount /proc
